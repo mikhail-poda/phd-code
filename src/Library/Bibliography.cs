@@ -16,8 +16,11 @@ public enum BibType
 public interface IBibItem
 {
     public int Year { get; }
+    public Range? Pages { get; }
     public BibType Type { get; }
     public string Title { get; }
+    public string PublCity { get; }
+    public string Publisher { get; }
     public IList<Kvp> Authors { get; }
 }
 
@@ -88,6 +91,20 @@ public record RisItem : IBibItem
     public int Year { get; private set; }
     public string Title { get; private set; }
     public BibType Type { get; private set; }
+    public string PublCity { get; private set; }
+    public string Publisher { get; private set; }
+
+    public Range? Pages
+    {
+        get
+        {
+            var min = _fields.FirstOrDefault(x => x.Key == "SP");
+            var max = _fields.FirstOrDefault(x => x.Key == "EP");
+
+            if (min.Value.IsNullOrEmpty() && max.Value.IsNullOrEmpty()) return null;
+            return new Range(int.Parse(min.Value), int.Parse(max.Value));
+        }
+    }
 
     private IList<Kvp>? _authors;
 
@@ -102,7 +119,7 @@ public record RisItem : IBibItem
             _fields.Where(x => x.Key == "AU").NullIfEmpty() ??
             _fields.Where(x => x.Key == "A1").NullIfEmpty() ??
             _fields.Where(x => x.Key == "A2").NullIfEmpty() ??
-            _fields.Where(x => x.Key == "A3").NullIfEmpty();
+            _fields.Where(x => x.Key == "A3");
 
         return list.Select(x => GetNameKvp(x.Value)).ToList();
     }
@@ -111,6 +128,12 @@ public record RisItem : IBibItem
     {
         var pair = str.Split(',');
         return pair.Length == 1 ? new Kvp(str, null) : new Kvp(pair[0].Trim(), pair[1].Trim());
+    }
+
+    public override string ToString()
+    {
+        var cell = _fields.Select(x => x.ToString()).ToList();
+        return string.Join(' ', cell);
     }
 
     public void Add(Kvp kvp)
@@ -125,6 +148,12 @@ public record RisItem : IBibItem
                 break;
             case "TI":
                 Title = kvp.Value;
+                break;
+            case "CY":
+                PublCity = kvp.Value;
+                break;
+            case "PB":
+                Publisher = kvp.Value;
                 break;
             default:
                 _fields.Add(kvp);
