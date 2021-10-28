@@ -12,4 +12,18 @@
       <ProjectReference Include="..\Library\Library.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Remove="IgnoreNames.resx" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="IgnoreNames.Designer.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="IgnoreNames.txt">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

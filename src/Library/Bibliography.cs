@@ -13,7 +13,7 @@ public enum BibType
     Thesis,
 }
 
-public interface IBibItem
+public interface IBibItem : IEnumerable<Kvp>
 {
     public int Year { get; }
     public Range? Pages { get; }
@@ -130,10 +130,21 @@ public record RisItem : IBibItem
         return pair.Length == 1 ? new Kvp(str, null) : new Kvp(pair[0].Trim(), pair[1].Trim());
     }
 
+
     public override string ToString()
     {
         var cell = _fields.Select(x => x.ToString()).ToList();
         return string.Join(' ', cell);
+    }
+
+    public IEnumerator<Kvp> GetEnumerator()
+    {
+        return _fields.GetEnumerator();
+    }
+
+    global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
+    {
+        return this.GetEnumerator();
     }
 
     public void Add(Kvp kvp)
