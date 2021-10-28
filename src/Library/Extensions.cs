@@ -11,4 +11,9 @@ public static class Extensions
     {
         return list == null || !list.Any();
     }
+
+    public static V? TryGetValue<K, V>(this IDictionary<K, V>? dict, K key)
+    {
+        return dict != null && dict.ContainsKey(key) ? dict[key] : default(V);
+    }
 }

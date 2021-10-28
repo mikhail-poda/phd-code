@@ -119,9 +119,9 @@ public record RisItem : IBibItem
             _fields.Where(x => x.Key == "AU").NullIfEmpty() ??
             _fields.Where(x => x.Key == "A1").NullIfEmpty() ??
             _fields.Where(x => x.Key == "A2").NullIfEmpty() ??
-            _fields.Where(x => x.Key == "A3");
+            _fields.Where(x => x.Key == "A3").NullIfEmpty();
 
-        return list.Select(x => GetNameKvp(x.Value)).ToList();
+        return list == null ? new List<Kvp> {new Kvp(Title, null)} : list.Select(x => GetNameKvp(x.Value)).ToList();
     }
 
     private static Kvp GetNameKvp(string str)
