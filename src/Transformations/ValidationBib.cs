@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Library;
+using Kvp = System.Collections.Generic.KeyValuePair<string, string>;
 
 namespace PhdCode;
 
@@ -11,13 +12,13 @@ public static class ValidationBib
     public static void Validate()
     {
         var risPath = @"D:\code\Mikhail\phd-private\bibliography\bibliography.ris";
-        var items = new RisBibliography(risPath).Items;
+        var items = new RisBibliography(risPath).ToList();
 
-        Console.WriteLine("   ------------------------ End Points -----------------------   ");
+        Console.WriteLine("   ------------------------ Last Char Point -----------------------   ");
         foreach (var item in items)
         foreach (var field in item)
             if (!field.Value.IsNullOrEmpty() && field.Value.Last() == '.')
-                Console.WriteLine("End Point: " + item.Type + ": " + item.Title + ": " + field.Value);
+                Console.WriteLine("Last char is point: " + item.Type + ": " + item.Title + ": " + field.Value);
 
         // validate year
         Console.WriteLine("   ------------------------ Year -----------------------   ");
@@ -101,6 +102,37 @@ public static class ValidationBib
         foreach (var chunk in chunks.Where(x => x.Cities.Count > 1))
             Console.WriteLine(chunk.Name + ", " + string.Join('/', chunk.Cities));
 
+        Console.WriteLine("   ------------------------ Authors by last name-----------------------   ");
+        var authors = items
+            .SelectMany(GetAllAuthors)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        foreach (var author in authors)
+            Console.WriteLine(author);
+
+        Console.WriteLine("   ------------------------ Authors by first name-----------------------   ");
+
+        foreach (var author in authors.Select(FirstLast).OrderBy(x => x))
+            Console.WriteLine(author);
+
         Console.WriteLine(items.Count);
+    }
+
+    private static string FirstLast(string author)
+    {
+        var parts = author.Split(',');
+        return parts.Length == 1 ? author : parts[1] + ", " + parts[0];
+    }
+
+    private static IList<string> GetAllAuthors(IBibItem bibItem)
+    {
+        var authors = bibItem
+            .Where(x => x.Key.StartsWith('A'))
+            .Select(x => x.Value)
+            .ToList();
+
+        return authors;
     }
 }

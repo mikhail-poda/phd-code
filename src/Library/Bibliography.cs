@@ -24,14 +24,13 @@ public interface IBibItem : IEnumerable<Kvp>
     public IList<Kvp> Authors { get; }
 }
 
-public interface IBibliography
+public interface IBibliography : IEnumerable<IBibItem>
 {
-    public IList<IBibItem> Items { get; }
 }
 
 public class RisBibliography : IBibliography
 {
-    public IList<IBibItem> Items { get; }
+    private readonly IList<IBibItem> _items;
 
     public RisBibliography(string fileName)
     {
@@ -39,9 +38,7 @@ public class RisBibliography : IBibliography
             throw new Exception("Must be a path to a valid RIS file: " + fileName);
 
         var text = File.ReadAllLines(fileName);
-        var items = GetRisItems(text).Cast<IBibItem>().ToList();
-
-        Items = items;
+        _items = GetRisItems(text).Cast<IBibItem>().ToList();
     }
 
     private static IEnumerable<RisItem> GetRisItems(IEnumerable<string> text)
@@ -82,6 +79,16 @@ public class RisBibliography : IBibliography
         if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value)) return null;
         return new Kvp(key, value);
     }
+
+    public IEnumerator<IBibItem> GetEnumerator()
+    {
+        return _items.GetEnumerator();
+    }
+
+    global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 }
 
 public record RisItem : IBibItem
@@ -107,11 +114,7 @@ public record RisItem : IBibItem
     }
 
     private IList<Kvp>? _authors;
-
-    public IList<Kvp> Authors
-    {
-        get { return _authors ?? (_authors = GetAuthors()); }
-    }
+    public IList<Kvp> Authors => _authors ??= GetAuthors();
 
     private IList<Kvp> GetAuthors()
     {
