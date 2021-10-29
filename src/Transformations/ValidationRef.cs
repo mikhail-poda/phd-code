@@ -7,6 +7,20 @@ using Library;
 
 namespace PhdCode;
 
+public enum ValidationType
+{
+    NoRef,
+    NoYear,
+    Valid,
+    Invalid
+}
+
+public record ValidationResult
+{
+    public IBibItem BibItem { get; init; }
+    public ValidationType ValType { get; init; }
+}
+
 public static class ValidationRef
 {
     private static readonly IFormatProvider _format = DateTimeFormatInfo.InvariantInfo;
@@ -22,8 +36,6 @@ public static class ValidationRef
 
         var folder = @"D:\code\Mikhail\phd-private\md";
         var files = Directory.EnumerateFiles(folder, "*.md");
-        var count = 0;
-        Range range;
         var prefixes = File.ReadAllLines("IgnoreNames.txt");
 
         foreach (var file in files)
@@ -41,55 +53,72 @@ public static class ValidationRef
                 .Replace("  ", " ");
 
             var matches = Regex.Matches(text, "\\d{4}");
-            var len = text.Length;
+            var list = matches.Select(x => Validate2(prefixes, text, x, items)).ToList();
 
-            foreach (Match match in matches)
-            {
-                var isValid = Validate(prefixes, text, match, items);
-                if (isValid) continue;
+            Console.WriteLine("------------------- Valid -------------------");
+            foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Valid))
+                Console.WriteLine(match.Item2);
 
-                range = new Range(Math.Max(0, match.Index - 50), match.Index + 4);
-                Console.WriteLine(text[range] + "         " + isValid);
-                count++;
-            }
+            Console.WriteLine("------------------- NoYear -------------------");
+            foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.NoYear))
+                Console.WriteLine(match.Item2);
+
+            Console.WriteLine("------------------- NoRef -------------------");
+            foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.NoRef))
+                Console.WriteLine(match.Item2);
+
+            Console.WriteLine("------------------- Invalid -------------------");
+            foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Invalid))
+                Console.WriteLine(match.Item2);
         }
-
-        Console.WriteLine(count);
     }
 
-    private static bool Validate(IEnumerable<string> prefixes, string text, Capture match,
+    private static Tuple<ValidationResult, string> Validate2(IEnumerable<string> prefixes, string text, Match match,
+        Dictionary<int, List<IBibItem>> items)
+    {
+        var result = Validate(prefixes, text, match, items);
+        var range = new Range(Math.Max(0, match.Index - 50), match.Index + 4);
+        var kvp = new Tuple<ValidationResult, string>(result, text[range]);
+
+        return kvp;
+    }
+
+    private static ValidationResult Validate(IEnumerable<string> prefixes, string text, Capture match,
         IDictionary<int, List<IBibItem>> items)
     {
         var hasPrefix = prefixes
             .Select(prefix => CompareBackwards(text, match.Index, prefix))
             .Any(x => x);
 
+        // e.g. im Jahr 2013
         if (hasPrefix)
-            return true;
+            return new ValidationResult {ValType = ValidationType.NoRef};
 
         var ind = match.Index;
 
+        // e.g. 12.12.2013
         var isDate = ind > 6 && DateTime.TryParseExact(
             text[(ind - 6) .. (ind + 4)],
             "dd.MM.yyyy",
             _format,
             DateTimeStyles.None,
             out _);
-        if (isDate) return true;
+        if (isDate) return new ValidationResult {ValType = ValidationType.NoRef};
 
+        // e.g. 12/2345 or =1234 or 2.1234 or 012345 or 
         var isNumber =
             text[ind - 1] == '/' ||
             text[ind - 1] == '=' ||
             (text[ind - 1] == '.' && char.IsDigit(text[ind - 2])) ||
             char.IsDigit(text[ind - 1]) ||
             char.IsDigit(text[ind - 5]);
-        if (isNumber) return true;
+        if (isNumber) return new ValidationResult {ValType = ValidationType.NoRef};
 
         if (text[ind - 1] == '(') ind -= 1;
 
         var year = int.Parse(match.Value);
         var group = items.TryGetValue(year);
-        if (group == null) return false;
+        if (group == null) return new ValidationResult {ValType = ValidationType.NoYear};
 
         foreach (var item in @group)
         {
@@ -98,23 +127,23 @@ public static class ValidationRef
             if (authors.IsNullOrEmpty()) continue;
 
             var isValid = CompareBackwards(text, ind, authors);
-            if (isValid) return true;
+            if (isValid) return new ValidationResult {ValType = ValidationType.Valid, BibItem = item};
 
             if (list.Count == 2)
             {
                 authors = list[0] + "/" + list[1];
                 isValid = CompareBackwards(text, ind, authors);
-                if (isValid) return true;
+                if (isValid) return new ValidationResult {ValType = ValidationType.Valid, BibItem = item};
             }
             else if (list.Count > 2)
             {
                 authors = list[0] + " et al.";
                 isValid = CompareBackwards(text, ind, authors);
-                if (isValid) return true;
+                if (isValid) return new ValidationResult {ValType = ValidationType.Valid, BibItem = item};
             }
         }
 
-        return false;
+        return new ValidationResult {ValType = ValidationType.Invalid};
     }
 
     private static bool CompareBackwards(string text, int index, string str)
