@@ -18,7 +18,7 @@ public enum ValidationType
 
 public record ValidationResult
 {
-    public IBibItem BibItem { get; init; }
+    public IBibItem? BibItem { get; init; }
     public ValidationType ValType { get; init; }
 }
 
@@ -28,7 +28,7 @@ public static class ValidationRef
 
     public static void Validate()
     {
-        var risPath = @"D:\code\Mikhail\phd-private\bibliography\bibliography.ris";
+        var risPath = @"D:\code\phd-private\bibliography\bibliography.ris";
         var items = new RisBibliography(risPath).ToList();
         var yearItemsDict = items
             .GroupBy(x => x.Year)
@@ -72,7 +72,7 @@ public static class ValidationRef
             Console.WriteLine(match.Item2);
 
         Console.WriteLine("------------------- Use -------------------");
-        foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Valid))
+        foreach (var match in list.Where(x => x.Item1.BibItem != null))
             itemCountDict[match.Item1.BibItem] += 1;
 
         foreach (var item in itemCountDict.OrderByDescending(x => x.Value))

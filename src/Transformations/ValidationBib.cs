@@ -11,7 +11,7 @@ public static class ValidationBib
 {
     public static void Validate()
     {
-        var risPath = @"D:\code\Mikhail\phd-private\bibliography\bibliography.ris";
+        var risPath = @"D:\code\phd-private\bibliography\bibliography.ris";
         var items = new RisBibliography(risPath).ToList();
 
         Console.WriteLine("   ------------------------ Last Char Point -----------------------   ");
