@@ -11,8 +11,8 @@ namespace PhdCode
         static void Main()
         {
             //ValidationRef.Validate();
-            //ValidationBib.Validate();
-            Md2Tex();
+            ValidationBib.Validate();
+            //Md2Tex();
         }
 
         private static void Md2Tex()

@@ -16,9 +16,9 @@ public static class ValidationBib
 
         Console.WriteLine("   ------------------------ Last Char Point -----------------------   ");
         foreach (var item in items)
-        foreach (var field in item)
-            if (!field.Value.IsNullOrEmpty() && field.Value.Last() == '.')
-                Console.WriteLine("Last char is point: " + item.Type + ": " + item.Title + ": " + field.Value);
+            foreach (var field in item)
+                if (!field.Value.IsNullOrEmpty() && field.Value.Last() == '.')
+                    Console.WriteLine("Last char is point: " + item.Type + ": " + item.Title + ": " + field.Value);
 
         // validate year
         Console.WriteLine("   ------------------------ Year -----------------------   ");
@@ -102,7 +102,7 @@ public static class ValidationBib
         foreach (var chunk in chunks.Where(x => x.Cities.Count > 1))
             Console.WriteLine(chunk.Name + ", " + string.Join('/', chunk.Cities));
 
-        Console.WriteLine("   ------------------------ Authors by last name-----------------------   ");
+        Console.WriteLine("   ------------------------ Authors by last name -----------------------   ");
         var authors = items
             .SelectMany(GetAllAuthors)
             .Distinct()
@@ -112,10 +112,22 @@ public static class ValidationBib
         foreach (var author in authors)
             Console.WriteLine(author);
 
-        Console.WriteLine("   ------------------------ Authors by first name-----------------------   ");
+        Console.WriteLine("   ------------------------ Authors by first name -----------------------   ");
 
         foreach (var author in authors.Select(FirstLast).OrderBy(x => x))
             Console.WriteLine(author);
+
+        Console.WriteLine("   ------------------------ Multiple Author-Year -----------------------   ");
+
+        var yearItems = items
+            .GroupBy(x => x.Year)
+            .OrderBy(x => x.Key)
+            .ToList();
+
+        foreach (var year in yearItems)
+            foreach (var chunk in year.GroupBy(x => x.Authors[0].Key))
+                if (chunk.Count() > 1)
+                    Console.WriteLine(year.Key + ": " + chunk.Key);
 
         Console.WriteLine(items.Count);
     }
