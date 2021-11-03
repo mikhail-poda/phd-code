@@ -10,8 +10,8 @@ namespace PhdCode
     {
         static void Main()
         {
-            //ValidationRef.Validate();
             //ValidationBib.Validate();
+            //ValidationRef.Validate();
 
             //Doc2Md();
             //MdPostProcessing();

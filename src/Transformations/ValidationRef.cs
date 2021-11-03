@@ -38,7 +38,7 @@ public static class ValidationRef
 
         var itemCountDict = items.ToDictionary(x => x, x => 0);
 
-        var folder = @"D:\code\Mikhail\phd-private\md";
+        var folder = @"D:\code\phd-private\md";
         var files = Directory.EnumerateFiles(folder, "*.md");
 
         var prefixes = File
