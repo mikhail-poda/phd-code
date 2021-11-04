@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
-using System.Text;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Library;
 
@@ -103,7 +100,7 @@ public static class ValidationRef
         Dictionary<int, List<IBibItem>> items)
     {
         var result = Validate(prefixes, text, match, items);
-        var range = SafeRange(match.Index, 50, 4);
+        var range = Utils.SafeRange(match.Index, 50, 4);
         var kvp = new Tuple<ValidationResult, string>(result, text[range]);
 
         return kvp;
@@ -159,7 +156,7 @@ public static class ValidationRef
             if (isValid) return new ValidationResult {ValType = ValidationType.Valid, BibItem = item};
         }
 
-        var section = text[SafeRange(ind, 50)];
+        var section = text[Utils.SafeRange(ind, 50)];
         foreach (var item in @group)
         {
             var list = item.Authors.Select(x => x.Key).ToList();
@@ -172,12 +169,7 @@ public static class ValidationRef
 
     private static bool CompareBackwards(string text, int index, string str)
     {
-        var range = SafeRange(index - 1, str.Length);
+        var range = Utils.SafeRange(index - 1, str.Length);
         return text[range] == str;
-    }
-
-    private static Range SafeRange(int index, int leftOffset, int rightOffset = 0)
-    {
-        return new Range(Math.Max(0, index - leftOffset), index + rightOffset);
     }
 }
