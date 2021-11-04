@@ -81,16 +81,7 @@ public static class ValidationRef
     {
         Console.WriteLine(file);
 
-        var text = File
-            .ReadAllText(file)
-            .Replace('\n', ' ')
-            .Replace('\r', ' ')
-            .Replace('>', ' ')
-            .Replace("     ", " ")
-            .Replace("    ", " ")
-            .Replace("   ", " ")
-            .Replace("  ", " ");
-
+        var text = Utils.ToSingleLine(File.ReadAllText(file));
         var matches = Regex.Matches(text, "\\d{4}");
         var list = matches.Select(x => Validate2(prefixes, text, x, yearItemsDict)).ToList();
         return list;

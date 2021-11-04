@@ -25,4 +25,16 @@ public static class Utils
 
         return false;
     }
+
+    public static string ToSingleLine(string text)
+    {
+        return text
+            .Replace('\n', ' ')
+            .Replace('\r', ' ')
+            .Replace('>', ' ')
+            .Replace("     ", " ")
+            .Replace("    ", " ")
+            .Replace("   ", " ")
+            .Replace("  ", " ");
+    }
 }

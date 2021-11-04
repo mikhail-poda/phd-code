@@ -20,7 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="IgnoreNames.txt">
+      <None Update="Bibliography\IgnoreNames.txt">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

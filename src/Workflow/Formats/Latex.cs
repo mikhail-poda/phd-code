@@ -1,4 +1,6 @@
-﻿namespace Workflow.Formats;
+﻿using System.Text.RegularExpressions;
+
+namespace Workflow.Formats;
 
 public static class Latex
 {
@@ -23,6 +25,16 @@ public static class Latex
                 .Replace("=\\textgreater{}", "$\\Rightarrow$")
                 .Replace("\\uline", "\\underline")
                 .Replace("\r\n  ", "\r\n");
+
+            if (text.Contains("longtable"))
+            {
+                var i0 = Regex.Match(text, "\\\\begin\\{longtable\\}");
+                var i1 = Regex.Match(text, "\\\\end\\{longtable\\}");
+                var sub1 = text[0..i0.Index];
+                var sub2 = text[(i1.Index + 16)..];
+
+                text = sub1 +"@PUT TABLE HERE@"+ sub2;
+            }
 
             File.WriteAllText(file, text);
         }

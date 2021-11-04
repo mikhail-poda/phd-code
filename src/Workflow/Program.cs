@@ -7,16 +7,16 @@ namespace Workflow
     {
         static void Main()
         {
-            ValidationBib.Validate();
-            ValidationRef.Validate();
+            // ValidationBib.Validate();
+            // ValidationRef.Validate();
 
-            Transformations.Doc2Md();
-            Markdown.PostProcessing();
+            // Transformations.Doc2Md();
+            // Markdown.PostProcessing();
 
-            Transformations.Md2Tex();
+            // Transformations.Md2Tex();
             Latex.PostProcessing();
 
-            Transformations.Md2Docx();
+            // Transformations.Md2Docx();
         }
     }
 }
