@@ -1,4 +1,7 @@
-﻿namespace PhdCode
+﻿using Workflow.Bibliography;
+using Workflow.Formats;
+
+namespace Workflow
 {
     static class Program
     {

@@ -1,7 +1,6 @@
 ﻿using Library;
-using Kvp = System.Collections.Generic.KeyValuePair<string, string>;
 
-namespace PhdCode;
+namespace Workflow.Bibliography;
 
 public static class ValidationBib
 {

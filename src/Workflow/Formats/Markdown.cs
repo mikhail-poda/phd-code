@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Library;
 
-namespace PhdCode;
+namespace Workflow.Formats;
 
 public static class Markdown
 {

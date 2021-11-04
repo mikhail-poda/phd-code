@@ -1,4 +1,4 @@
-﻿namespace PhdCode;
+﻿namespace Workflow.Formats;
 
 public static class Latex
 {
