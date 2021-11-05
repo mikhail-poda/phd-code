@@ -14,9 +14,9 @@ namespace Workflow
             // Markdown.PostProcessing();
             
             //Transformations.Md2Tex();
-            Latex.PostProcessing();
+            // Latex.PostProcessing();
 
-            // Transformations.Md2Docx();
+            Transformations.Md2Docx();
         }
     }
 }

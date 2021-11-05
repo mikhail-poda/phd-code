@@ -41,12 +41,17 @@ public static class Transformations
     public static void Md2Docx()
     {
         var mdPath = Path.Combine(_srcPath, "md");
-        var file = Path.Combine(mdPath, "document.md");
-        var outFile = Path.Combine(mdPath, "document.docx");
+        var files = Directory.EnumerateFiles(mdPath, "*.md").ToList();
 
-        var args = new[] {"--from=markdown", "--to=docx", "--output=" + outFile, file};
-        var result = System.Diagnostics.Process.Start(_pandoc, args);
+        foreach (var file in files)
+        {
+            var fileName = Path.GetFileNameWithoutExtension(file);
+            var outFile = Path.Combine(_srcPath, "docout", fileName + ".docx");
+            var args = new[] {"--from=markdown", "--to=docx", "--output=" + outFile, file};
+            
+            System.Diagnostics.Process.Start(_pandoc, args);
 
-        Console.WriteLine(result.ExitCode);
+            Thread.Sleep(2000);
+        }
     }
 }

@@ -124,6 +124,18 @@ public static class ValidationBib
                 if (chunk.Count() > 1)
                     Console.WriteLine(year.Key + ": " + chunk.Key);
 
+        Console.WriteLine("   ------------------------ Ders. - Dies. -----------------------   ");
+        foreach (var item in items)
+        {
+            var allAuthors = GetAllAuthors(item).ToList();
+            if (allAuthors.IsNullOrEmpty()) continue;
+
+            var hasSame = allAuthors.GroupBy(x => x).All(x => x.Count() == 2);
+            if (hasSame)
+                Console.WriteLine(item.Title + " : " + string.Join("; ", allAuthors));
+        }
+
+
         Console.WriteLine(items.Count);
     }
 
