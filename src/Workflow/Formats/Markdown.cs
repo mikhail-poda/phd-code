@@ -95,7 +95,11 @@ public static class Markdown
             .Replace("ä", "ä") // a ̈ -> ä
             .Replace("ö", "ö")
             .Replace("ü", "ü")
-            .Replace("Ä", "Ä");
+            .Replace("Ä", "Ä")
+            .Replace("Ä", "Ä")
+            .Replace("**¶**", "¶")
+            .Replace("\r\n¶", "¶")
+            .Replace("\r\n\r\n¶", "¶")
 
         return text;
     }

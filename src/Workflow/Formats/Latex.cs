@@ -62,7 +62,9 @@ public static class Latex
             .Replace("'", "\\grq ")
             .Replace("=\\textgreater{}", "$\\Rightarrow$")
             .Replace("\\uline", "\\underline")
-            .Replace("\r\n  ", "\r\n");
+            .Replace("\r\n  ", "\r\n")
+            .Replace("¶", "\\\\");
+        
         return text;
     }
 }
