@@ -27,11 +27,17 @@ public static class Latex
 
     private static void ValidateText(string text)
     {
+        var length = text.Length;
+
         var i0 = text.IndexOf(" *");
-        if (i0 >= 0) Console.WriteLine(text[Utils.SafeRange(i0, 30, 30, text.Length)]);
+        if (i0 >= 0) Console.WriteLine(text[Utils.SafeRange(i0, 30, 30, length)]);
 
         var i1 = text.IndexOf("* ");
-        if (i1 >= 0) Console.WriteLine(text[Utils.SafeRange(i1, 30, 30, text.Length)]);
+        if (i1 >= 0) Console.WriteLine(text[Utils.SafeRange(i1, 30, 30, length)]);
+
+        var matches = Regex.Matches(text, "href");
+        foreach (Match match in matches)
+            Console.WriteLine(text[Utils.SafeRange(match.Index, 5, 50, length)]);
     }
 
     private static string RemoveTableText(string text)
@@ -64,7 +70,7 @@ public static class Latex
             .Replace("\\uline", "\\underline")
             .Replace("\r\n  ", "\r\n")
             .Replace("¶", "\\\\");
-        
+
         return text;
     }
 }

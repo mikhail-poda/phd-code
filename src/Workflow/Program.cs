@@ -11,12 +11,12 @@ namespace Workflow
             // ValidationRef.Validate();
 
             // Transformations.Doc2Md();
-            // Markdown.PostProcessing();
+            Markdown.PostProcessing();
             
             //Transformations.Md2Tex();
             // Latex.PostProcessing();
 
-            Transformations.Md2Docx();
+            // Transformations.Md2Docx();
         }
     }
 }

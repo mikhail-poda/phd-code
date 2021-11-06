@@ -13,6 +13,8 @@ public static class Markdown
 
         foreach (var file in files)
         {
+            if (file.Contains("Bibliography")) continue;
+
             Console.WriteLine(file);
             var text = File.ReadAllText(file);
 
@@ -38,7 +40,7 @@ public static class Markdown
         var patterns = new[]
         {
             "r/i", // Künstler/innen
-            "\\df\\.", // (Helguera 2011: 14f.).
+            "\\df", // (Helguera 2011: 14f.).
             "\\s\\)",
             "\\(\\s",
             "\\s:",
@@ -54,7 +56,7 @@ public static class Markdown
             "\\:\\S"
         };
 
-        foreach (var pattern in patterns) 
+        foreach (var pattern in patterns)
             ValidatePattern(text, pattern);
     }
 
