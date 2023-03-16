@@ -2,9 +2,9 @@
 
 public static class Transformations
 {
-    private static string _pandoc = @"C:\Program Files\Pandoc\pandoc.exe";
-    private static string _srcPath = @"D:\code\phd-private";
-    
+    private const string _pandoc = @"C:\Program Files\Pandoc\pandoc.exe";
+    private const string _srcPath = @"D:\7_code\phd-private";
+
     public static void Doc2Md()
     {
         var docxPath = Path.Combine(_srcPath, "docx");
@@ -19,6 +19,7 @@ public static class Transformations
             System.Diagnostics.Process.Start(_pandoc, args);
 
             Thread.Sleep(2000);
+            Console.WriteLine(outFile);
         }
     }
     

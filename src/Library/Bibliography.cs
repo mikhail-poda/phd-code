@@ -11,6 +11,7 @@ public enum BibType
     WebPage,
     Article,
     Thesis,
+    Manuscript
 }
 
 public interface IBibItem : IEnumerable<Kvp>
@@ -184,6 +185,7 @@ public record RisItem : IBibItem
             case "JOUR": return BibType.Article;
             case "THES": return BibType.Thesis;
             case "ELEC": return BibType.WebPage;
+            case "MANSCPT": return BibType.Manuscript;
             default: throw new Exception("Unknown bib type: " + kvpValue);
         }
     }

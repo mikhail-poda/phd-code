@@ -1,5 +1,5 @@
-﻿using System.Text.RegularExpressions;
-using Library;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Workflow.Formats;
 
@@ -7,86 +7,99 @@ public static class Markdown
 {
     public static void PostProcessing()
     {
-        var mdPath = @"D:\code\phd-private\md";
+        const string mdPath = @"D:\7_code\phd-private\md";
         var files = Directory.EnumerateFiles(mdPath, "*.md");
-        var unprintable = new Dictionary<char, int>();
 
         foreach (var file in files)
         {
-            if (file.Contains("Bibliography")) continue;
-
-            Console.WriteLine(file);
             var text = File.ReadAllText(file);
+            text = PostProcessing(text);
 
-            text = RemoveLiterature(text);
-            text = CorrectQuotes(text);
-            text = ReplaceUnprintable(text);
-            text = MakeHeaders(text);
-
-            ValidateSymbols(text);
-            CountUnprintable(text, unprintable);
-
-            File.WriteAllText(file, text);
+            var resFile = file + ".md";
+            File.WriteAllText(resFile, text);
+            Console.WriteLine(resFile);
         }
-
-        foreach (var @char in unprintable.OrderByDescending(x => x.Value))
-            Console.WriteLine(@char.Key + "  " + (int) @char.Key + "  " + @char.Value);
     }
 
-    private static void ValidateSymbols(string text)
+    private static string PostProcessing(string text)
     {
-        text = Utils.ToSingleLine(text).Replace("://", "@");
+        text = CutTablesImagesToc(text);
 
-        var patterns = new[]
-        {
-            "r/i", // Künstler/innen
-            "\\df", // (Helguera 2011: 14f.).
-            "\\s\\)",
-            "\\(\\s",
-            "\\s:",
-            ":\\S",
-            "/\\s",
-            "\\s/",
-            "\\s\\.",
-            "\\s\\,",
-            "\\,\\S",
-            "\\s\\?",
-            "\\s\\!",
-            "\\s\\:",
-            "\\:\\S"
-        };
+        text = CorrectQuotes(text);
+        text = CorrectQuotes(text);
 
-        foreach (var pattern in patterns)
-            ValidatePattern(text, pattern);
+        text = ReplaceUnprintable(text);
+        text = MakeHeaders(text);
+
+        text = CorrectQuotations(text);
+
+        return text;
     }
 
-    private static void ValidatePattern(string text, string pattern)
+    private static string CorrectQuotations(string text)
     {
-        var len = text.Length;
-        var matches = Regex.Matches(text, pattern);
-        if (matches.Count == 0) return;
-        Console.WriteLine("--------------- Pattern \"" + pattern + "\" " + matches.Count);
+        var sb = new StringBuilder();
+        var cell = text.Split("\r\n");
 
-        foreach (Match match in matches)
+        var isQuotation = false;
+
+        foreach (var lineIn in cell)
         {
-            var range = Utils.SafeRange(match.Index, 20, 20, len);
-            Console.WriteLine("\t\t" + text[range]);
+            var line = lineIn.TrimEnd();
+
+            if (line.StartsWith(@"> \$"))
+            {
+                if (isQuotation) throw new Exception("Already in quotation");
+                isQuotation = true;
+                line = line.Replace(@"\$", null);
+            }
+            else if (line.StartsWith(@"\$"))
+            {
+                if (isQuotation) throw new Exception("Already in quotation");
+                isQuotation = true;
+                line = "> " + line.Replace(@"\$", null);;
+            }
+            else if (line.EndsWith(@"\$\$"))
+            {
+                if (!isQuotation) throw new Exception("Should be in quotation");
+                isQuotation = false;
+                line = line.Replace(@"\$\$", null);
+                if (!line.StartsWith('>')) line = "> " + line;
+            }
+            else if (isQuotation)
+            {
+                if (!line.StartsWith('>')) line = "> " + line;
+            }
+
+            sb.AppendLine(line);
         }
+
+        return sb.ToString();
+    }
+
+    private static string CutTablesImagesToc(string text)
+    {
+        var toc = @"\\@toc_start(.|\n)*\\@toc_end";
+        var img = @"\\@image_start(.|\n)*\\@image_end";
+        var tbl = @"\\@table_start(.|\n)*\\@table_end";
+        var cell = new[] {toc, img, tbl};
+
+        foreach (var pattern in cell)
+            text = Regex.Replace(text, pattern, "");
+
+        return text;
     }
 
     private static string CorrectQuotes(string text)
     {
         text = text
-            .Replace("*** ***", " ")
-            .Replace("** **", " ")
             .Replace("* *", " ")
             .Replace("*,*", ",")
-            .Replace("*.*", ",")
-            .Replace("***\r\n***", " ")
-            .Replace("**\r\n**", " ")
+            .Replace("*.*", ".")
             .Replace("*\r\n*", " ")
             .Replace("„*", "*„")
-            .Replace("*\"", "\"*");
+            .Replace("*\"", "\"*")
+            .Replace("*§", "§*");
 
         return text;
     }
@@ -99,24 +112,9 @@ public static class Markdown
             .Replace("ü", "ü")
             .Replace("Ä", "Ä")
             .Replace("Ä", "Ä")
-            .Replace("**¶**", "¶")
-            .Replace("\r\n¶", "¶")
-            .Replace("\r\n\r\n¶", "¶");
+            .Replace(" ", " ");
 
         return text;
-    }
-
-    private static void CountUnprintable(string text, IDictionary<char, int> hset)
-    {
-        foreach (var @char in text)
-        {
-            if (Utils.IsPrintable(@char)) continue;
-
-            if (hset.ContainsKey(@char))
-                hset[@char]++;
-            else
-                hset.Add(@char, 1);
-        }
     }
 
     private static string MakeHeaders(string text)
@@ -149,19 +147,6 @@ public static class Markdown
             text = text.Replace(match.Value, "#### " + name);
         }
 
-        return text;
-    }
-
-    private static string RemoveLiterature(string text)
-    {
-        var il = text.IndexOf("**Literatur");
-        if (il == -1) il = text.IndexOf("**[Literatur");
-        if (il == -1) il = text.IndexOf("[Literatur");
-        if (il == -1) return text;
-
-        var ir = text.IndexOf("[^1]:");
-
-        text = text.Substring(0, il) + text.Substring(ir);
         return text;
     }
 }

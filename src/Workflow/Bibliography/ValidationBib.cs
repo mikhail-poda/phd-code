@@ -1,4 +1,5 @@
-﻿using Library;
+﻿using System.Text;
+using Library;
 
 namespace Workflow.Bibliography;
 
@@ -6,53 +7,63 @@ public static class ValidationBib
 {
     public static void Validate()
     {
-        var risPath = @"D:\code\phd-private\bibliography\bibliography.ris";
-        var items = new RisBibliography(risPath).ToList();
+        var risFile = @"D:\7_Code\phd-private\bibliography\bibliography.ris";
+        var items = new RisBibliography(risFile).ToList();
+        var sb = new StringBuilder();
 
-        Console.WriteLine("   ------------------------ Last Char Point -----------------------   ");
+        Validate(sb, items);
+
+        var outFile = risFile + ".valid.txt";
+        File.WriteAllText(outFile, sb.ToString());
+        Console.WriteLine(outFile);
+    }
+
+    private static void Validate(StringBuilder sb, IList<IBibItem> items)
+    {
+        sb.AppendLine("   ------------------------ Last Char Point -----------------------   ");
         foreach (var item in items)
-            foreach (var field in item)
-                if (!field.Value.IsNullOrEmpty() && field.Value.Last() == '.')
-                    Console.WriteLine("Last char is point: " + item.Type + ": " + item.Title + ": " + field.Value);
+        foreach (var field in item)
+            if (!field.Value.IsNullOrEmpty() && field.Value.Last() == '.')
+                sb.AppendLine("Last char is point: " + item.Type + ": " + item.Title + ": " + field.Value);
 
         // validate year
-        Console.WriteLine("   ------------------------ Year -----------------------   ");
+        sb.AppendLine("   ------------------------ Year -----------------------   ");
 
         // validate year
         foreach (var item in items)
-            if (item.Year is < 1900 or > 2020)
-                Console.WriteLine("No year: " + item.Type + ": " + item.Title);
+            if (item.Year is < 1900 or > 2022)
+                sb.AppendLine("No year: " + item.Type + ": " + item.Title);
 
         var years = items
             .GroupBy(x => x.Year)
             .OrderBy(x => x.Key);
 
         foreach (var year in years)
-            Console.WriteLine(year.Key + ": " + year.Count());
+            sb.AppendLine(year.Key + ": " + year.Count());
 
-        Console.WriteLine("   ------------------------ Authors -----------------------   ");
+        sb.AppendLine("   ------------------------ Authors -----------------------   ");
 
         // validate authors
         foreach (var item in items)
             if (item.Authors.IsNullOrEmpty())
-                Console.WriteLine("No authors: " + item.Type + ": " + item.Title);
+                sb.AppendLine("No authors: " + item.Type + ": " + item.Title);
 
-        Console.WriteLine("   ------------------------- Title ----------------------   ");
+        sb.AppendLine("   ------------------------- Title ----------------------   ");
 
         // validate title
         foreach (var item in items)
             if (item.Title.IsNullOrEmpty())
-                Console.WriteLine("No title: " + item);
+                sb.AppendLine("No title: " + item);
 
-        Console.WriteLine("   ------------------------ Pages -----------------------   ");
+        sb.AppendLine("   ------------------------ Pages -----------------------   ");
 
         // validate pages
         foreach (var item in items)
             if (item.Type is BibType.Article or BibType.Chapter)
                 if (item.Pages == null)
-                    Console.WriteLine("No pages: " + item.Type + ": " + item.Title);
+                    sb.AppendLine("No pages: " + item.Type + ": " + item.Title);
 
-        Console.WriteLine("   ------------------------ City -----------------------   ");
+        sb.AppendLine("   ------------------------ City -----------------------   ");
 
         // validate city
         var cities = items
@@ -61,15 +72,15 @@ public static class ValidationBib
             .OrderBy(x => x);
 
         foreach (var city in cities)
-            Console.WriteLine(city);
+            sb.AppendLine(city);
 
-        Console.WriteLine("   ------------------------ Publisher -----------------------   ");
+        sb.AppendLine("   ------------------------ Publisher -----------------------   ");
 
         // validate publisher
         foreach (var item in items)
             if (item.Type is BibType.Book)
                 if (item.Publisher.IsNullOrEmpty())
-                    Console.WriteLine("No Publisher: " + item.Type + ": " + item.Title);
+                    sb.AppendLine("No Publisher: " + item.Type + ": " + item.Title);
 
         // extract publishers
         var chunks = items
@@ -82,22 +93,22 @@ public static class ValidationBib
             })
             .ToList();
 
-        Console.WriteLine("   ----------------------- By Number ------------------------   ");
+        sb.AppendLine("   ----------------------- By Number ------------------------   ");
 
         foreach (var chunk in chunks.OrderByDescending(x => x.Count))
-            Console.WriteLine(chunk.Name + ", " + chunk.Count);
+            sb.AppendLine(chunk.Name + ", " + chunk.Count);
 
-        Console.WriteLine("   ------------------------ By Name -----------------------   ");
+        sb.AppendLine("   ------------------------ By Name -----------------------   ");
 
         foreach (var chunk in chunks.OrderBy(x => x.Name))
-            Console.WriteLine(chunk.Name + ", " + chunk.Count);
+            sb.AppendLine(chunk.Name + ", " + chunk.Count);
 
-        Console.WriteLine("   ------------------------ Cities -----------------------   ");
+        sb.AppendLine("   ------------------------ Cities -----------------------   ");
 
         foreach (var chunk in chunks.Where(x => x.Cities.Count > 1))
-            Console.WriteLine(chunk.Name + ", " + string.Join('/', chunk.Cities));
+            sb.AppendLine(chunk.Name + ", " + string.Join('/', chunk.Cities));
 
-        Console.WriteLine("   ------------------------ Authors by last name -----------------------   ");
+        sb.AppendLine("   ------------------------ Authors by last name -----------------------   ");
         var authors = items
             .SelectMany(GetAllAuthors)
             .Distinct()
@@ -105,14 +116,14 @@ public static class ValidationBib
             .ToList();
 
         foreach (var author in authors)
-            Console.WriteLine(author);
+            sb.AppendLine(author);
 
-        Console.WriteLine("   ------------------------ Authors by first name -----------------------   ");
+        sb.AppendLine("   ------------------------ Authors by first name -----------------------   ");
 
         foreach (var author in authors.Select(FirstLast).OrderBy(x => x))
-            Console.WriteLine(author);
+            sb.AppendLine(author);
 
-        Console.WriteLine("   ------------------------ Multiple Author-Year -----------------------   ");
+        sb.AppendLine("   ------------------------ Multiple Author-Year -----------------------   ");
 
         var yearItems = items
             .GroupBy(x => x.Year)
@@ -120,11 +131,11 @@ public static class ValidationBib
             .ToList();
 
         foreach (var year in yearItems)
-            foreach (var chunk in year.GroupBy(x => x.Authors[0].Key))
-                if (chunk.Count() > 1)
-                    Console.WriteLine(year.Key + ": " + chunk.Key);
+        foreach (var chunk in year.GroupBy(x => x.Authors[0].Key))
+            if (chunk.Count() > 1)
+                sb.AppendLine(year.Key + ": " + chunk.Key);
 
-        Console.WriteLine("   ------------------------ Ders. - Dies. -----------------------   ");
+        sb.AppendLine("   ------------------------ Ders. - Dies. -----------------------   ");
         foreach (var item in items)
         {
             var allAuthors = GetAllAuthors(item).ToList();
@@ -132,11 +143,11 @@ public static class ValidationBib
 
             var hasSame = allAuthors.GroupBy(x => x).All(x => x.Count() == 2);
             if (hasSame)
-                Console.WriteLine(item.Title + " : " + string.Join("; ", allAuthors));
+                sb.AppendLine(item.Title + " : " + string.Join("; ", allAuthors));
         }
 
 
-        Console.WriteLine(items.Count);
+        sb.AppendLine(items.Count.ToString());
     }
 
     private static string FirstLast(string author)

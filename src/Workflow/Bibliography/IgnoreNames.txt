@@ -4,6 +4,7 @@ the
 der
 den
 das
+die
 Die
 erstmals
 nach
@@ -37,4 +38,5 @@ September
 Oktober
 November
 Dezember
+Thessaloniki
 \

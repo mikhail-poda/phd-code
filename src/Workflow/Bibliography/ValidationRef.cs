@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Library;
 
@@ -25,9 +26,21 @@ public static class ValidationRef
 
     public static void Validate()
     {
-        var risPath = @"D:\code\phd-private\bibliography\bibliography.ris";
-        var items = new RisBibliography(risPath).ToList();
+        var risFile = @"D:\7_code\phd-private\bibliography\bibliography.ris";
+        var items = new RisBibliography(risFile).ToList();
+        var sb = new StringBuilder();
+
+        Validate(sb, items);
+
+        var outFile = risFile + ".ref.txt";
+        File.WriteAllText(outFile, sb.ToString());
+        Console.WriteLine(outFile);
+    }
+
+    public static void Validate(StringBuilder sb, IList<IBibItem> items)
+    {
         var yearItemsDict = items
+            .Where(x => x.Type != BibType.WebPage)
             .GroupBy(x => x.Year)
             .ToDictionary(
                 x => x.Key,
@@ -35,69 +48,124 @@ public static class ValidationRef
 
         var itemCountDict = items.ToDictionary(x => x, x => 0);
 
-        var folder = @"D:\code\phd-private\md";
-        var files = Directory.EnumerateFiles(folder, "*.md");
+        var folder = @"D:\7_code\phd-private\md";
+        var files = Directory.EnumerateFiles(folder, "*.md.md").ToList();
 
         var prefixes = File
             .ReadAllLines("IgnoreNames.txt")
             .Select(x => x.Length <= 3 ? " " + x : x)
             .ToList();
 
-        var list = files
-            .Select(f => ValidateFile(f, prefixes, yearItemsDict))
+        var list1 = files
+            .Select(f => ValidateByYear(f, prefixes, yearItemsDict, sb))
             .SelectMany(x => x)
             .ToArray();
 
-        Console.WriteLine("------------------- Valid -------------------");
+        var websites = items.Where(x => x.Type == BibType.WebPage).ToList();
+        var list2 = files
+            .Select(f => ValidateWebsite(f, websites, sb))
+            .SelectMany(x => x)
+            .ToArray();
+
+        var list = Enumerable.Concat(list1, list2);
+
+        sb.AppendLine("------------------- Valid -------------------");
         foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Valid))
-            Console.WriteLine(match.Item2);
+            sb.AppendLine(match.Item2);
 
-        Console.WriteLine("------------------- NoYear -------------------");
+        sb.AppendLine("------------------- NoYear -------------------");
         foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.NoYear))
-            Console.WriteLine(match.Item2);
+            sb.AppendLine(match.Item2);
 
-        Console.WriteLine("------------------- NoRef -------------------");
+        sb.AppendLine("------------------- NoRef -------------------");
         foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.NoRef))
-            Console.WriteLine(match.Item2);
+            sb.AppendLine(match.Item2);
 
-        Console.WriteLine("------------------- Invalid -------------------");
+        sb.AppendLine("------------------- Invalid -------------------");
         foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Invalid))
-            Console.WriteLine(match.Item2);
+            sb.AppendLine(match.Item2);
 
-        Console.WriteLine("------------------- Format Issue -------------------");
+        sb.AppendLine("------------------- Format Issue -------------------");
         foreach (var match in list.Where(x => x.Item1.ValType == ValidationType.Format))
-            Console.WriteLine(match.Item2);
+            sb.AppendLine(match.Item2);
 
-        Console.WriteLine("------------------- Use -------------------");
+        sb.AppendLine("------------------- Use -------------------");
         foreach (var match in list.Where(x => x.Item1.BibItem != null))
             itemCountDict[match.Item1.BibItem] += 1;
 
         foreach (var item in itemCountDict.OrderByDescending(x => x.Value))
-            Console.WriteLine(item.Value + "\t" + item.Key.Title);
+            sb.AppendLine(item.Value + "\t" + item.Key.Title + "\t" + item.Key.Year + "\t" +
+                          string.Join(", ", item.Key.Authors.Select(x => x.Key)));
     }
 
-    private static List<Tuple<ValidationResult, string>> ValidateFile(string file, IEnumerable<string> prefixes,
-        Dictionary<int, List<IBibItem>> yearItemsDict)
+    private static IList<Tuple<ValidationResult, string>> ValidateWebsite(string file, IList<IBibItem> websites,
+        StringBuilder sb)
     {
-        Console.WriteLine(file);
+        sb.AppendLine(file);
 
-        var text = Utils.ToSingleLine(File.ReadAllText(file));
-        var matches = Regex.Matches(text, "\\d{4}");
-        var list = matches.Select(x => Validate2(prefixes, text, x, yearItemsDict)).ToList();
+        var lines = File.ReadAllLines(file).Where(x => !x.StartsWith("> ")).ToList();
+        var text = string.Join(' ', lines);
+        text = Regex.Replace(text, @"\s+", " ");
+
+        var matches = Regex.Matches(text, "vgl. Website");
+        var list = matches.Select(x => ValidateWebsiteDescr(text, x, websites)).ToList();
+
         return list;
     }
 
-    private static Tuple<ValidationResult, string> Validate2(IEnumerable<string> prefixes, string text, Match match,
-        Dictionary<int, List<IBibItem>> items)
+    private static Tuple<ValidationResult, string> ValidateWebsiteDescr(string text, Capture match,
+        IList<IBibItem> websites)
     {
-        var result = Validate(prefixes, text, match, items);
+        var result = ValidateWebsite(text, match, websites);
+        var range = Utils.SafeRange(match.Index, 4, 50);
+        var kvp = new Tuple<ValidationResult, string>(result, text[range]);
+
+        return kvp;
+    }
+
+    private static ValidationResult ValidateWebsite(string text, Capture match, IList<IBibItem> websites)
+    {
+        var ind = match.Index;
+        foreach (var website in websites)
+        {
+            var str = $"vgl. Website {website.Title}";
+            var isValid = CompareForwards(text, ind, str);
+
+            if (isValid)
+                return new ValidationResult {ValType = ValidationType.Valid, BibItem = website};
+        }
+
+        return new ValidationResult {ValType = ValidationType.Invalid};
+    }
+
+
+    private static IList<Tuple<ValidationResult, string>> ValidateByYear(string file, IEnumerable<string> prefixes,
+        IDictionary<int, List<IBibItem>> yearItemsDict, StringBuilder sb)
+    {
+        sb.AppendLine(file);
+
+        var lines = File.ReadAllLines(file).Where(x => !x.StartsWith("> ")).ToList();
+        var text = string.Join(' ', lines);
+        text = Regex.Replace(text, @"\s+", " ");
+
+        var matches = Regex.Matches(text, "\\d{4}");
+        var list = matches.Select(x => ValidateByYearDescr(prefixes, text, x, yearItemsDict)).ToList();
+
+        return list;
+    }
+
+    private static Tuple<ValidationResult, string> ValidateByYearDescr(IEnumerable<string> prefixes, string text,
+        Capture match,
+        IDictionary<int, List<IBibItem>> yearItemsDict)
+    {
+        var result = ValidateByYear(prefixes, text, match, yearItemsDict);
         var range = Utils.SafeRange(match.Index, 50, 4);
         var kvp = new Tuple<ValidationResult, string>(result, text[range]);
 
         return kvp;
     }
 
-    private static ValidationResult Validate(IEnumerable<string> prefixes, string text, Capture match,
+    private static ValidationResult ValidateByYear(IEnumerable<string> prefixes, string text, Capture match,
         IDictionary<int, List<IBibItem>> yearItemsDict)
     {
         var ind = match.Index;
@@ -161,6 +229,14 @@ public static class ValidationRef
     private static bool CompareBackwards(string text, int index, string str)
     {
         var range = Utils.SafeRange(index - 1, str.Length);
-        return text[range] == str;
+        var txt = text[range];
+        return txt == str;
+    }
+
+    private static bool CompareForwards(string text, int index, string str)
+    {
+        var range = Utils.SafeRange(index, 0, str.Length);
+        var txt = text[range];
+        return txt == str;
     }
 }
