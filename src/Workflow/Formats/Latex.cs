@@ -7,7 +7,7 @@ public static class Latex
 {
     public static void PostProcessing()
     {
-        var texPath = @"D:\code\phd-private\tex";
+        var texPath = @"D:\7_code\phd-private\tex";
         var files = Directory.EnumerateFiles(texPath, "*.tex");
 
         foreach (var file in files)
@@ -17,7 +17,6 @@ public static class Latex
             var text = File.ReadAllText(file);
 
             text = ReplaceSpecialChars(text);
-            text = RemoveTableText(text);
 
             ValidateText(text);
 
@@ -40,20 +39,6 @@ public static class Latex
             Console.WriteLine(text[Utils.SafeRange(match.Index, 5, 50, length)]);
     }
 
-    private static string RemoveTableText(string text)
-    {
-        if (!text.Contains("longtable")) return text;
-
-        var i0 = Regex.Match(text, "\\\\begin\\{longtable\\}");
-        var i1 = Regex.Match(text, "\\\\end\\{longtable\\}");
-        var sub1 = text[0..i0.Index];
-        var sub2 = text[(i1.Index + 16)..];
-
-        text = sub1 + "@PUT TABLE HERE@" + sub2;
-
-        return text;
-    }
-
     private static string ReplaceSpecialChars(string text)
     {
         text = text
@@ -69,7 +54,7 @@ public static class Latex
             .Replace("=\\textgreater{}", "$\\Rightarrow$")
             .Replace("\\uline", "\\underline")
             .Replace("\r\n  ", "\r\n")
-            .Replace("¶", "\\\\");
+            .Replace("§", "\r\n\\medskip\r\n");
 
         return text;
     }

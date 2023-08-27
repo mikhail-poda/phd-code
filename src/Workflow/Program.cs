@@ -8,16 +8,15 @@ namespace Workflow
         static void Main()
         {
             //ValidationBib.Validate();
-
-            //Transformations.Doc2Md();
-            Markdown.PostProcessing();
-            //ValidationMd.PostProcessing();
             //ValidationRef.Validate();
             
-            //Transformations.Md2Tex();
-            // Latex.PostProcessing();
-            // Transformations.Md2Docx();
+            //Transformations.Doc2Md();
+            //Markdown.PostProcessing();
+            //ValidationMd.PostProcessing();
             
+            //Transformations.Md2Tex();
+            //Latex.PostProcessing();
+            Transformations.Tex2Docx();
         }
     }
 }

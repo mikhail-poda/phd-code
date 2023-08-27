@@ -30,14 +30,17 @@ public static class ValidationRef
         var items = new RisBibliography(risFile).ToList();
         var sb = new StringBuilder();
 
-        Validate(sb, items);
+        var folder = @"D:\7_code\phd-private\md";
+        var files = Directory.EnumerateFiles(folder, "*.md.md").ToList();
+
+        Validate(sb, items, files);
 
         var outFile = risFile + ".ref.txt";
         File.WriteAllText(outFile, sb.ToString());
         Console.WriteLine(outFile);
     }
 
-    public static void Validate(StringBuilder sb, IList<IBibItem> items)
+    private static void Validate(StringBuilder sb, IList<IBibItem> items, IEnumerable<string> files)
     {
         var yearItemsDict = items
             .Where(x => x.Type != BibType.WebPage)
@@ -48,11 +51,8 @@ public static class ValidationRef
 
         var itemCountDict = items.ToDictionary(x => x, x => 0);
 
-        var folder = @"D:\7_code\phd-private\md";
-        var files = Directory.EnumerateFiles(folder, "*.md.md").ToList();
-
         var prefixes = File
-            .ReadAllLines("IgnoreNames.txt")
+            .ReadAllLines(@"Bibliography\IgnoreNames.txt")
             .Select(x => x.Length <= 3 ? " " + x : x)
             .ToList();
 

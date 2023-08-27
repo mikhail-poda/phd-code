@@ -13,6 +13,9 @@ public static class ValidationMd
         var unprintable = new Dictionary<char, int>();
         var sb = new StringBuilder();
 
+        var refs = new HashSet<string>();
+        var labels = new HashSet<string>();
+
         foreach (var file in files)
         {
             var text = File.ReadAllText(file);
@@ -20,28 +23,84 @@ public static class ValidationMd
             ValidateSymbols(text, sb);
             CountUnprintable(text, unprintable);
 
+            GatherLabels(text, labels, refs);
+
             Console.WriteLine(file);
         }
 
+        sb.AppendLine();
+        sb.AppendLine("============ All unprintable ============");
         foreach (var @char in unprintable.OrderByDescending(x => x.Value))
             sb.AppendLine(@char.Key + "  " + (int) @char.Key + "  " + @char.Value);
+
+        sb.AppendLine();
+        sb.AppendLine($"============ All labels {labels.Count} ============");
+        foreach (var str in labels.OrderBy(x => x))
+            sb.AppendLine(str);
+
+        sb.AppendLine();
+        sb.AppendLine($"============ All refs {refs.Count} ============");
+        foreach (var str in refs.OrderBy(x => x))
+            sb.AppendLine(str);
+
+        sb.AppendLine();
+        sb.AppendLine("============ Missing refs ============");
+        foreach (var str in labels.Except(refs).OrderBy(x => x))
+            sb.AppendLine(str);
+
+        sb.AppendLine("============ Missing labels ============");
+        foreach (var str in refs.Except(labels).OrderBy(x => x))
+            sb.AppendLine(str);
 
         var resFile = Path.Combine(mdPath, "validation.txt");
         Console.WriteLine(resFile);
         File.WriteAllText(resFile, sb.ToString());
     }
 
+    private static void GatherLabels(string text, ISet<string> labels, ISet<string> refs)
+    {
+        var pattern = @"\\label{(\w+)}";
+        var matches = Regex.Matches(text, pattern);
+
+        foreach (Match match in matches)
+        {
+            var label = match.Groups[1].Value;
+            if (labels.Contains(label))
+                throw new Exception($"Label {label} already in use");
+            labels.Add(label);
+        }
+
+        pattern = @"\\ref{(\w+)}";
+        matches = Regex.Matches(text, pattern);
+
+        foreach (Match match in matches)
+            refs.Add(match.Groups[1].Value);
+
+        pattern = @"\\pageref{(\w+)}";
+        matches = Regex.Matches(text, pattern);
+
+        foreach (Match match in matches)
+            refs.Add(match.Groups[1].Value);
+    }
+
 
     private static void ValidateSymbols(string text, StringBuilder sb)
     {
+        // website like in <http://www.artecitya.gr/eric-ellingsen.html>
         text = Utils.ToSingleLine(text).Replace("://", "@");
 
         var patterns = new[]
         {
+            "§", // error transforming
+            "@", // error transforming references
             "r/i", // Künstler/innen
             "\\df", // (Helguera 2011: 14f.).
             "\\s\\)",
+            "\\s\"", // critique'. " (Buchholz/Wuggenig
+            "\\s'", // The 'right to the
             "\\(\\s",
+            "\\w\"\\w",
+            "\\w'\\w",
             "\\s:",
             ":\\S",
             "/\\s",
@@ -64,11 +123,11 @@ public static class ValidationMd
         var len = text.Length;
         var matches = Regex.Matches(text, pattern);
         if (matches.Count == 0) return;
-        
+
         sb.AppendLine();
-        sb.AppendLine("--------------- Pattern \"" + pattern + "\" " + matches.Count);
+        sb.AppendLine("--------------- Pattern " + pattern + " " + matches.Count);
         sb.AppendLine();
-        
+
         foreach (Match match in matches)
         {
             var range = Utils.SafeRange(match.Index, 20, 20, len);

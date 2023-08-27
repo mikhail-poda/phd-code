@@ -23,17 +23,67 @@ public static class Markdown
 
     private static string PostProcessing(string text)
     {
+        if (text.Contains("{.mark}"))
+            throw new Exception("Remove all {.mark}");
+        
         text = CutTablesImagesToc(text);
 
         text = CorrectQuotes(text);
         text = CorrectQuotes(text);
 
         text = ReplaceUnprintable(text);
-        text = MakeHeaders(text);
-
+        text = MakeTextReference(text);
         text = CorrectQuotations(text);
+        text = RemoveSectionNumbers(text);
 
         return text;
+    }
+
+    private static string MakeTextReference(string text)
+    {
+        // tex \label
+        var pattern = @"#(\w+)";
+        var replacement = @"\label{$1}";
+        var rgx = new Regex(pattern);
+        text = rgx.Replace(text, replacement);
+        
+        // tex \pageref
+        pattern = @"S\. \\@(\w+)"; 
+        replacement = @"S. \pageref{$1}"; 
+        rgx = new Regex(pattern);
+        text = rgx.Replace(text, replacement);
+
+        // tex \titleref
+        pattern = @"\\@(\w+)"; 
+        replacement = @"\titleref{$1}"; 
+        rgx = new Regex(pattern);
+        text = rgx.Replace(text, replacement);
+
+        return text;
+    }
+
+    private static string RemoveSectionNumbers(string text)
+    {
+        var sb = new StringBuilder();
+        var cell = text.Split("\r\n");
+
+        foreach (var lineIn in cell)
+        {
+            if (!lineIn.StartsWith('#'))
+            {
+                sb.AppendLine(lineIn);
+                continue;
+            }
+
+            var parts = lineIn.Split(' ').ToList();
+            if (parts[0].Any(x => x != '#'))
+                throw new Exception("Bad formatted header: " + lineIn);
+
+            parts.RemoveAt(1);
+            sb.AppendLine(string.Join(' ', parts));
+        }
+
+        return sb.ToString();
     }
 
     private static string CorrectQuotations(string text)
@@ -49,19 +99,20 @@ public static class Markdown
 
             if (line.StartsWith(@"> \$"))
             {
-                if (isQuotation) throw new Exception("Already in quotation");
+                if (isQuotation) throw new Exception("Already in quotation: " + line);
                 isQuotation = true;
                 line = line.Replace(@"\$", null);
             }
             else if (line.StartsWith(@"\$"))
             {
-                if (isQuotation) throw new Exception("Already in quotation");
+                if (isQuotation) throw new Exception("Already in quotation: " + line);
                 isQuotation = true;
-                line = "> " + line.Replace(@"\$", null);;
+                line = "> " + line.Replace(@"\$", null);
+                ;
             }
             else if (line.EndsWith(@"\$\$"))
             {
-                if (!isQuotation) throw new Exception("Should be in quotation");
+                if (!isQuotation) throw new Exception("Should be in quotation: " + line);
                 isQuotation = false;
                 line = line.Replace(@"\$\$", null);
                 if (!line.StartsWith('>')) line = "> " + line;
@@ -79,9 +130,9 @@ public static class Markdown
 
     private static string CutTablesImagesToc(string text)
     {
-        var toc = @"\\@toc_start(.|\n)*\\@toc_end";
-        var img = @"\\@image_start(.|\n)*\\@image_end";
-        var tbl = @"\\@table_start(.|\n)*\\@table_end";
+        var toc = @"\\@toc_start(.|\n)*?\\@toc_end";
+        var img = @"\\@image_start(.|\n)*?\\@image_end";
+        var tbl = @"\\@table_start(.|\n)*?\\@table_end";
         var cell = new[] {toc, img, tbl};
 
         foreach (var pattern in cell)
@@ -112,40 +163,8 @@ public static class Markdown
             .Replace("ü", "ü")
             .Replace("Ä", "Ä")
             .Replace("Ä", "Ä")
-            .Replace(" ", " ");
-
-        return text;
-    }
-
-    private static string MakeHeaders(string text)
-    {
-        var chapters = Regex.Matches(text, "\\*\\*\\d\\.\\s(.|\n|\r)+?\\*\\*");
-        foreach (Match match in chapters)
-        {
-            var name = match.Value[5..^2].Replace("\r\n", " ");
-            text = text.Replace(match.Value, "# " + name);
-        }
-
-        var sections = Regex.Matches(text, "\\*\\*\\d\\.\\d\\s(.|\n|\r)+?\\*\\*");
-        foreach (Match match in sections)
-        {
-            var name = match.Value[6..^2].Replace("\r\n", " ");
-            text = text.Replace(match.Value, "## " + name);
-        }
-
-        var subsec = Regex.Matches(text, "\\*\\*\\d\\.\\d\\.\\d\\s(.|\n|\r)+?\\*\\*");
-        foreach (Match match in subsec)
-        {
-            var name = match.Value[8..^2].Replace("\r\n", " ");
-            text = text.Replace(match.Value, "### " + name);
-        }
-
-        var subsub = Regex.Matches(text, "\\*\\*\\d\\.\\d\\.\\d\\.\\d\\s(.|\n|\r)+?\\*\\*");
-        foreach (Match match in subsub)
-        {
-            var name = match.Value[10..^2].Replace("\r\n", " ");
-            text = text.Replace(match.Value, "#### " + name);
-        }
+            .Replace(" ", " ")
+            .Replace("⁠", " ");
 
         return text;
     }
